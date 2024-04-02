@@ -1,0 +1,8 @@
+.sidebar {
+    transition: transform 0.3s ease; /* Apply transition for smoother animation */
+    transform: translateX(-100%); /* Initially position the sidebar outside the viewport */
+}
+
+.sidebar.open {
+    transform: translateX(0); /* Slide the sidebar in */
+}
