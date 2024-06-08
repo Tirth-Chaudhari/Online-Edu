@@ -6,7 +6,9 @@ import {firebaseApp} from '../../config/firebase.config'
 import {getAuth, createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithPopup,GoogleAuthProvider } from 'firebase/auth';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';  
-const Login=({OpenPage,setIsOpen})=>
+import { jwtDecode } from "jwt-decode";
+import { useGlobalContext } from '../../context/globalcontext';
+const Login=({OpenPage,setIsOpen,setLoginSuccess})=>
 {
 
 
@@ -17,11 +19,11 @@ const Login=({OpenPage,setIsOpen})=>
     const [username, setUsername] = useState('');
     const [fullname, setFullname] = useState('');
     const [OpenSignIn,setSignIn]=useState(false);
+    const [name,setName]=useState('');
 
     const [confirmPassword, setConfirmPassword] = useState('');
 
-
-
+    const {addUser,getUser}=useGlobalContext();
     // FOR Login PAGE 
 
       //******** ********* ********* ********* ********* ********* ********* ********* ********* ********* ********* */
@@ -36,8 +38,28 @@ const Login=({OpenPage,setIsOpen})=>
                     {
                             if(userCred._tokenResponse.emailVerified)
                             {
-                                
+                                 const user = userCred.user;
+                                const getToken=async ()=>
+                                {
+                                  const user = userCred.user;
+                                  const idToken = await user.getIdToken();
+                                  const decodedToken = jwtDecode(idToken)
+                                  localStorage.setItem("token",idToken);
+                                }
+                              // const idToken = await user.getIdToken();
+                                getToken();
+                                const user1={
+                                  name:user.displayName,
+                                  email:user.email
+                                }
+                                addUser(user1);
+                              setLoginSuccess(true);  
+                              console.log(userCred); 
+                              toast.success("Login Successfully!", {
+                                position: "top-center"
+                            }); 
                             }
+
                             onClose();
                     }
                 catch(err)
@@ -76,9 +98,18 @@ const Login=({OpenPage,setIsOpen})=>
       const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          // Login successful, handle further actions like redirecting user
-          console.log('Login successful', userCredential.user);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            const idToken = await user.getIdToken();
+            const decodedToken = jwtDecode(idToken)
+            localStorage.setItem("token",idToken);
+            const user1={
+              email:user.email
+            }
+             getUser(user1);
+             setLoginSuccess(true);   
+
           toast.success("Login Successfully!", {
             position: "top-center"
         });
@@ -86,8 +117,7 @@ const Login=({OpenPage,setIsOpen})=>
         setPassword('');
         onClose();
 
-          // You can also redirect the user to another page upon successful login
-          // history.push('/dashboard');
+         
         } catch (error) {
           // Handle login errors
           toast.info("invalid-credential!", {
@@ -104,6 +134,7 @@ const Login=({OpenPage,setIsOpen})=>
             setEmail('');
             setPassword('');
             setConfirmPassword('');
+            setName('');
             setIsOpen(false);
             setSignIn(true);
 
@@ -116,7 +147,10 @@ const Login=({OpenPage,setIsOpen})=>
         // FOR SIGNUP  PAGE 
   
         //******** ********* ********* ********* ********* ********* ********* ********* ********* ********* ********* */
-     
+        const handleNameChange=(e)=>
+        {
+            setName(e.target.value);
+        }
   
         const handleUsernameChange = (event) => {
           setUsername(event.target.value);
@@ -140,14 +174,35 @@ const Login=({OpenPage,setIsOpen})=>
                     });
                     return;
                 }
+                if(name.trim()=== "")
+                {
+                  toast.info("name field should not blank!", {
+                    position: "top-center"
+                });
+                  return;
+                }
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    // Signup successful, handle further actions like storing user data
+                    const user = userCredential.user;
+
+                    const idToken = await user.getIdToken();
+                    const decodedToken = jwtDecode(idToken);
+
+                    localStorage.setItem("token",idToken);
+
                     toast.success("SignIn Successfully!", {
                         position: "top-center"
                     });
+                    const user1={
+                      name:name,
+                      email:decodedToken.email
+                    }
+                    addUser(user1);
                     setEmail('');
                     setPassword('');
+                    setName('');
+                    setLoginSuccess(true);   
+
                     onClose();
                     // Update user profile with additional information (if needed)
                     // await updateProfile(userCredential.user, { displayName: username });
@@ -186,6 +241,8 @@ const Login=({OpenPage,setIsOpen})=>
             setEmail('');
             setPassword('')
             setConfirmPassword('')
+            setName('');
+
             setSignIn(false);
             setIsOpen(true);
         }
@@ -296,7 +353,21 @@ const Login=({OpenPage,setIsOpen})=>
                 </div>
             </div>
         <form onSubmit={handleSignup}>
-         
+         <div className="flex flex-col flex-wrap -mx-3 mb-4">
+            <div className="w-full px-3 relative">
+              <input 
+                type="name" 
+                name="name" 
+                value={name} 
+                onChange={handleNameChange} 
+                className={`form-input w-full py-2 pl-10 pr-4 border border-gray-400 rounded-md focus:outline-none ${name ? 'text-gray-900' : 'text-gray-300'}`} 
+                required 
+                placeholder="Enter Name" 
+              />
+              
+                    
+            </div>
+          </div> 
           <div className="flex flex-col flex-wrap -mx-3 mb-4">
             <div className="w-full px-3 relative">
               <input 
